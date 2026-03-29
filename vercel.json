@@ -1,6 +1,0 @@
-{
-  "buildCommand": "cd trustsignal-reddit-web && npm install && npm run build",
-  "outputDirectory": "trustsignal-reddit-web/.next",
-  "installCommand": "echo 'skip'",
-  "framework": "nextjs"
-}
