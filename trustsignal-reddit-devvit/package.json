@@ -1,0 +1,19 @@
+{
+  "name": "trustsignal-reddit-devvit",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devvit/public-api": "0.11.9"
+  },
+  "devDependencies": {
+    "typescript": "~5.5.0"
+  },
+  "devvit": {
+    "default": true
+  }
+}
