@@ -1,0 +1,6 @@
+# AUTONOMOUS DECISION: Using Devvit SDK v0.11 as the latest stable version
+# based on current Devvit documentation patterns.
+name: trustsignal
+version: 0.0.1
+description: "TrustSignal - AI content scoring and cryptographic verification for Reddit"
+update: true
