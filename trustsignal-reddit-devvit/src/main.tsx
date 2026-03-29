@@ -21,7 +21,7 @@ Devvit.addSettings([
     label: "TrustSignal API Key",
     helpText: "Your TrustSignal Pro or Team API key from trustsignal.dev/dashboard",
     isSecret: true,
-    scope: "installation",
+    scope: "app",
   },
   {
     name: "webAppUrl",
