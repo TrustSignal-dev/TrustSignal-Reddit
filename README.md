@@ -6,6 +6,11 @@ TrustSignal is a Reddit-focused trust and moderation toolkit. This repository cu
 - A browser extension that shows per-post TrustSignal badges on Reddit pages.
 - A bridge service that signs, verifies, and stores audit receipts for extension-driven scoring flows.
 
+Important:
+
+- The native Devvit moderator app no longer uses the Vercel bridge.
+- The `bridge/` service remains in this repo only for the browser extension and receipt workflow.
+
 The repo is in an active transition from an external bridge-heavy model toward a more self-contained Reddit-native moderation workflow.
 
 ## What is in this repo
@@ -23,7 +28,7 @@ store_assets/    Listing and store artwork
 
 ### 1. Native Devvit moderator tool
 
-The repo root is a Devvit app called `trustsignal-rd`. It now runs without outbound HTTP dependencies.
+The repo root is a Devvit app called `trustsignal-rd`. It runs fully inside Reddit and does not call the Vercel bridge.
 
 - It scores post content with local moderation heuristics inside Devvit.
 - It stores the latest scan result per post in Devvit storage.
@@ -43,7 +48,7 @@ The `extension/` directory contains the Reddit-facing Chrome extension.
 
 ### 3. Bridge service
 
-The `bridge/` directory contains the receipt and verification service.
+The `bridge/` directory contains the receipt and verification service used by the browser extension path, not by the native Devvit app.
 
 - It accepts Reddit events via `/ingest`.
 - It computes trust scores and signed receipts.
