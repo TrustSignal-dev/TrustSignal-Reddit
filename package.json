@@ -1,0 +1,20 @@
+{
+  "name": "trustsignal-rd",
+  "version": "0.0.3",
+  "description": "Native Reddit TrustSignal Scorer",
+  "type": "module",
+  "scripts": {
+    "dev": "npx devvit playtest",
+    "build": "npx devvit bundle",
+    "upload": "npx devvit upload",
+    "test": "npx tsc --outDir /tmp/trustsignal-rd-test && node --test /tmp/trustsignal-rd-test/__tests__/score.test.js",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "dependencies": {
+    "@devvit/public-api": "0.12.17"
+  },
+  "devDependencies": {
+    "@devvit/cli": "0.12.17",
+    "typescript": "^5.4.0"
+  }
+}
