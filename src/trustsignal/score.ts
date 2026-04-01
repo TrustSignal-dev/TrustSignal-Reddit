@@ -2,11 +2,14 @@ import { createHash } from 'node:crypto';
 
 import type { TrustSignalScore } from './types.js';
 
-const MODEL_VERSION = 'local-heuristics-v1';
+const MODEL_VERSION = 'local-heuristics-v2';
 const NEUTRAL_SCORE = 60;
 
+// ─── Phrase Banks ─────────────────────────────────────────────────────────────
+
+/** Stock AI-generated filler phrases */
 const AI_STYLE_PHRASES = [
-  'in today\'s fast-paced',
+  "in today's fast-paced",
   'delve into',
   'it is important to note',
   'in conclusion',
@@ -16,18 +19,51 @@ const AI_STYLE_PHRASES = [
   'seamless',
   'unlock the',
   'game changer',
+  'dive deep',
+  'at the end of the day',
+  'it goes without saying',
+  'needless to say',
+  'in the realm of',
+  'a testament to',
+  'revolutionize',
+  'cutting-edge',
+  'leverage',
+  'synergy',
+  'paradigm shift',
+  'holistic approach',
+  'robust solution',
+  'best practices',
+  'thought leader',
 ];
 
+/** Promotional / spam language */
 const PROMO_PHRASES = [
   'subscribe now',
   'limited time',
   'click the link',
-  'don\'t miss out',
+  "don't miss out",
+  'act now',
+  'buy now',
+  'free trial',
+  'sign up today',
+  'exclusive offer',
+  'discount code',
+  'use code',
+  'affiliate',
+  'dm me for',
+  'check my profile',
+  'link in bio',
+  'promo code',
 ];
 
-const FIRST_PERSON_PATTERN = /\b(i|i'm|i’ve|i'd|my|me|we|we're|our|us)\b/i;
+const FIRST_PERSON_PATTERN = /\b(i|i'm|i've|i'd|my|me|we|we're|our|us)\b/i;
 const CONTRACTION_PATTERN =
-  /\b(?:can't|won't|don't|isn't|aren't|i'm|i've|we're|they're|that's|it's)\b/i;
+  /\b(?:can't|won't|don't|isn't|aren't|i'm|i've|we're|they're|that's|it's|couldn't|wouldn't|shouldn't|didn't|doesn't|hadn't|hasn't|haven't|weren't|wasn't)\b/i;
+const ALL_CAPS_WORD_PATTERN = /\b[A-Z]{4,}\b/g;
+const REPEATED_PUNCTUATION_PATTERN = /([!?.])\1{2,}/g;
+const URL_PATTERN = /https?:\/\/\S+/g;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
@@ -59,11 +95,28 @@ function computeSentenceVariance(text: string): number {
   return variance;
 }
 
+/**
+ * Computes a lexical diversity ratio (unique words / total words).
+ * Very low diversity is a signal of repetitive or templated content.
+ */
+function computeLexicalDiversity(text: string): number {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+  if (words.length < 10) return 1;
+  const unique = new Set(words);
+  return unique.size / words.length;
+}
+
 function buildFingerprint(title: string, body: string): string {
   return createHash('sha256')
     .update(JSON.stringify({ title, body }))
     .digest('hex');
 }
+
+// ─── Main Scoring Function ────────────────────────────────────────────────────
 
 export function scoreTrustSignalContent(input: {
   title: string;
@@ -90,10 +143,7 @@ export function scoreTrustSignalContent(input: {
 
   let score = NEUTRAL_SCORE;
 
-  if (combined.length < 80) {
-    score -= 8;
-    reasons.push('Very short post, so the scan has lower confidence.');
-  }
+  // ── Positive signals (authentic human writing) ───────────────────────────
 
   if (FIRST_PERSON_PATTERN.test(normalized)) {
     score += 8;
@@ -101,9 +151,29 @@ export function scoreTrustSignalContent(input: {
   }
 
   if (CONTRACTION_PATTERN.test(normalized)) {
-    score += 4;
+    score += 6;
     reasons.push('Uses conversational contractions instead of polished boilerplate.');
   }
+
+  const wordCount = combined.split(/\s+/).filter(Boolean).length;
+  if (wordCount >= 80) {
+    score += 5;
+    reasons.push('Substantial post length suggests genuine engagement.');
+  }
+
+  const lexicalDiversity = computeLexicalDiversity(combined);
+  if (lexicalDiversity >= 0.65) {
+    score += 6;
+    reasons.push('High lexical diversity suggests original writing.');
+  }
+
+  const questionCount = countMatches(combined, /\?/g);
+  if (questionCount > 0) {
+    score += 3;
+    reasons.push('Contains questions, which usually indicates direct human interaction.');
+  }
+
+  // ── Negative signals (suspicious / low-quality content) ──────────────────
 
   const aiPhraseHits = AI_STYLE_PHRASES.filter((phrase) => normalized.includes(phrase));
   if (aiPhraseHits.length > 0) {
@@ -115,28 +185,34 @@ export function scoreTrustSignalContent(input: {
 
   const promoHits = PROMO_PHRASES.filter((phrase) => normalized.includes(phrase));
   if (promoHits.length > 0) {
-    score -= Math.min(18, promoHits.length * 6);
+    score -= Math.min(20, promoHits.length * 7);
     reasons.push('Contains promotional language that often appears in generated copy.');
   }
 
   const bulletLines = body
     .split('\n')
-    .filter((line) => /^\s*[-*]\s+/.test(line)).length;
+    .filter((line) => /^\s*[-*•]\s+/.test(line)).length;
   if (bulletLines >= 4) {
     score -= 6;
     reasons.push('The body is list-heavy and summary-shaped.');
   }
 
-  const linkCount = countMatches(combined, /https?:\/\/\S+/g);
+  const linkCount = countMatches(combined, URL_PATTERN);
   if (linkCount >= 3) {
-    score -= 5;
+    score -= 8;
     reasons.push('Contains several outbound links, which raises spam risk.');
+  } else if (linkCount >= 1) {
+    score -= 3;
+    reasons.push('Contains an outbound link.');
   }
 
   const exclamationCount = countMatches(combined, /!/g);
-  if (exclamationCount >= 4) {
-    score -= 4;
-    reasons.push('Heavy punctuation makes the post look more promotional than conversational.');
+  if (exclamationCount >= 5) {
+    score -= 6;
+    reasons.push('Heavy exclamation use makes the post look promotional.');
+  } else if (exclamationCount >= 3) {
+    score -= 3;
+    reasons.push('Elevated exclamation use.');
   }
 
   const sentenceVariance = computeSentenceVariance(combined);
@@ -145,16 +221,38 @@ export function scoreTrustSignalContent(input: {
     reasons.push('Sentence lengths are unusually uniform across the post.');
   }
 
-  if (body.length > 1400) {
-    score -= 6;
-    reasons.push('Long-form polished copy gets a stricter score in moderator mode.');
+  const allCapsCount = countMatches(combined, ALL_CAPS_WORD_PATTERN);
+  if (allCapsCount >= 3) {
+    score -= 5;
+    reasons.push('Multiple all-caps words suggest shouting or spam formatting.');
   }
 
-  const questionCount = countMatches(combined, /\?/g);
-  if (questionCount > 0) {
-    score += 3;
-    reasons.push('Contains questions, which usually indicates direct human interaction.');
+  const repeatedPunctuationCount = countMatches(combined, REPEATED_PUNCTUATION_PATTERN);
+  if (repeatedPunctuationCount >= 2) {
+    score -= 4;
+    reasons.push('Repeated punctuation (e.g. "!!!" or "...") is common in low-quality posts.');
   }
+
+  if (lexicalDiversity < 0.35 && wordCount >= 20) {
+    score -= 8;
+    reasons.push('Low lexical diversity suggests repetitive or templated content.');
+  }
+
+  // ── Title-specific signals ────────────────────────────────────────────────
+
+  const titleWords = title.split(/\s+/).length;
+  if (titleWords <= 3 && body.length < 50) {
+    score -= 5;
+    reasons.push('Very short title and body — minimal content to evaluate.');
+  }
+
+  const titleAllCaps = /^[A-Z\s!?]+$/.test(title) && titleWords >= 3;
+  if (titleAllCaps) {
+    score -= 6;
+    reasons.push('Title is written entirely in capitals, a common spam pattern.');
+  }
+
+  // ── Final result ──────────────────────────────────────────────────────────
 
   const trustScore = clampScore(score);
   const flagged = trustScore < input.trustThreshold;
@@ -167,7 +265,7 @@ export function scoreTrustSignalContent(input: {
       : `Scored TS ${trustScore}.`,
     reasons:
       reasons.length > 0
-        ? reasons.slice(0, 3)
+        ? reasons.slice(0, 5)
         : ['No strong risk markers were found in the post text.'],
     contentFingerprint: buildFingerprint(title, body),
     modelVersion: MODEL_VERSION,

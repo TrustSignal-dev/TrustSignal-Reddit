@@ -2,19 +2,26 @@ import type { Devvit } from '@devvit/public-api';
 
 import { getTrustSignalSettings } from './settings.js';
 import { formatScanToast, runTrustSignalScan } from './scan.js';
-import type { ScanSource } from './types.js';
+import {
+  appendModAction,
+  getModActionLog,
+  getStoredScan,
+  getSubredditStats,
+} from './store.js';
+import type { ModActionRecord, ModActionType, ScanSource } from './types.js';
 
 function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
   }
-
   return 'Unknown error';
 }
 
+// ─── Manual scan ──────────────────────────────────────────────────────────────
+
 export async function handleManualScan(
   postId: string,
-  context: Pick<Devvit.Context, 'kvStore' | 'reddit' | 'settings'>
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
 ): Promise<string> {
   try {
     const result = await runTrustSignalScan(postId, 'menu', context, {
@@ -32,10 +39,12 @@ export async function handleManualScan(
   }
 }
 
+// ─── Automatic scan (triggers) ────────────────────────────────────────────────
+
 export async function handleAutomaticScan(
   postId: string | undefined,
   scanSource: ScanSource,
-  context: Pick<Devvit.Context, 'kvStore' | 'reddit' | 'settings'>
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
 ): Promise<void> {
   if (!postId) {
     console.error('[TrustSignal] Trigger skipped because the post id was missing.');
@@ -52,13 +61,117 @@ export async function handleAutomaticScan(
   }
 }
 
-export async function getStatusToast(
-  context: Pick<Devvit.Context, 'settings'>
-): Promise<string> {
-  const settings = await getTrustSignalSettings(context);
-  const autoMode = settings.autoScanEnabled ? 'on' : 'off';
-  const editMode = settings.rescanOnEdit ? 'on' : 'off';
-  const flairMode = settings.applyPostFlair ? 'on' : 'off';
+// ─── Status toast ─────────────────────────────────────────────────────────────
 
-  return `TrustSignal is active. Threshold ${settings.trustThreshold}. Auto-scan ${autoMode}, edit re-scan ${editMode}, flair ${flairMode}.`;
+export async function getStatusToast(
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
+): Promise<string> {
+  try {
+    const settings = await getTrustSignalSettings(context);
+    const subreddit = await context.reddit.getCurrentSubreddit();
+    const stats = await getSubredditStats(context, subreddit?.name ?? '');
+
+    const autoMode = settings.autoScanEnabled ? 'on' : 'off';
+    const editMode = settings.rescanOnEdit ? 'on' : 'off';
+    const flairMode = settings.applyPostFlair ? 'on' : 'off';
+
+    if (stats.totalScanned > 0) {
+      const flagRate = Math.round((stats.totalFlagged / stats.totalScanned) * 100);
+      return (
+        `TrustSignal active. Threshold ${settings.trustThreshold}. ` +
+        `Auto-scan ${autoMode}, re-scan ${editMode}, flair ${flairMode}. ` +
+        `Scanned ${stats.totalScanned} | Flagged ${flagRate}% | Avg ${stats.averageScore}`
+      );
+    }
+
+    return `TrustSignal active. Threshold ${settings.trustThreshold}. Auto-scan ${autoMode}, re-scan ${editMode}, flair ${flairMode}.`;
+  } catch (error) {
+    console.error('[TrustSignal] Status failed:', getErrorMessage(error));
+    return 'TrustSignal is active.';
+  }
+}
+
+// ─── Dashboard toast ──────────────────────────────────────────────────────────
+
+export async function getDashboardToast(
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
+): Promise<string> {
+  try {
+    const subreddit = await context.reddit.getCurrentSubreddit();
+    const subredditName = subreddit?.name ?? '';
+
+    const [stats, modLog] = await Promise.all([
+      getSubredditStats(context, subredditName),
+      getModActionLog(context, subredditName, 50),
+    ]);
+
+    const flagRate =
+      stats.totalScanned > 0
+        ? Math.round((stats.totalFlagged / stats.totalScanned) * 100)
+        : 0;
+
+    return (
+      `TrustSignal Dashboard | ` +
+      `Scanned: ${stats.totalScanned} | ` +
+      `Flagged: ${stats.totalFlagged} (${flagRate}%) | ` +
+      `Avg score: ${stats.averageScore} | ` +
+      `Mod actions logged: ${modLog.length}`
+    );
+  } catch (error) {
+    console.error('[TrustSignal] Dashboard failed:', getErrorMessage(error));
+    return 'TrustSignal dashboard unavailable.';
+  }
+}
+
+// ─── Mod action logging ───────────────────────────────────────────────────────
+
+/**
+ * Records a moderator action against a post, bound to the post's current
+ * TrustSignal scan fingerprint. Creates a tamper-evident audit trail:
+ * if the post content changes after the action, the fingerprint will no longer
+ * match, surfacing a DRIFT signal on the next scan.
+ */
+export async function logModAction(
+  postId: string,
+  actionType: ModActionType,
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
+): Promise<string> {
+  try {
+    const [currentUser, subreddit] = await Promise.all([
+      context.reddit.getCurrentUser(),
+      context.reddit.getCurrentSubreddit(),
+    ]);
+
+    if (!currentUser || !subreddit) {
+      return 'TrustSignal: Could not log action — missing context.';
+    }
+
+    // Fetch the latest scan to bind the content fingerprint
+    const scanRecord = await getStoredScan(context, postId);
+
+    if (!scanRecord) {
+      return 'TrustSignal: No scan found for this post. Run "Scan post" first.';
+    }
+
+    const action: ModActionRecord = {
+      actionId: `${postId}:${actionType}:${Date.now()}`,
+      postId,
+      postPermalink: scanRecord.postPermalink,
+      subredditName: subreddit.name,
+      modName: currentUser.username,
+      actionType,
+      contentFingerprint: scanRecord.contentFingerprint,
+      trustScore: scanRecord.trustScore,
+      flagged: scanRecord.flagged,
+      performedAt: new Date().toISOString(),
+    };
+
+    await appendModAction(context, action);
+
+    const icon = actionType === 'approve' ? '✓' : '⚑';
+    return `${icon} TrustSignal logged: ${actionType} on post (TS ${scanRecord.trustScore})`;
+  } catch (error) {
+    console.error('[TrustSignal] logModAction failed:', getErrorMessage(error));
+    return 'TrustSignal could not log this action.';
+  }
 }

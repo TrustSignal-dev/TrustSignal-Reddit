@@ -2,7 +2,7 @@ import type { Devvit } from '@devvit/public-api';
 
 import { getTrustSignalSettings } from './settings.js';
 import { scoreTrustSignalContent } from './score.js';
-import { getStoredScan, saveStoredScan } from './store.js';
+import { getStoredScan, saveStoredScan, updateSubredditStats } from './store.js';
 import type {
   PostSnapshot,
   ScanSource,
@@ -68,10 +68,7 @@ export function formatScanToast(
 export async function runTrustSignalScan(
   postId: string,
   scanSource: ScanSource,
-  context: Pick<
-    Devvit.Context,
-    'kvStore' | 'reddit' | 'settings'
-  >,
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>,
   options?: { force?: boolean }
 ): Promise<{ record: TrustSignalScanRecord; skipped: boolean } | undefined> {
   const settings = await getTrustSignalSettings(context);
@@ -112,6 +109,14 @@ export async function runTrustSignalScan(
 
   if (!skipped) {
     await saveStoredScan(context, record);
+
+    // Update running subreddit stats for the dashboard
+    await updateSubredditStats(
+      context,
+      post.subredditName,
+      score.trustScore,
+      score.flagged
+    );
 
     if (settings.applyPostFlair) {
       await applyFlair(context, record);
