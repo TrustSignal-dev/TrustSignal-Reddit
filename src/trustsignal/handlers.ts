@@ -94,15 +94,24 @@ export async function getStatusToast(
 // ─── Dashboard toast ──────────────────────────────────────────────────────────
 
 export async function getDashboardToast(
-  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>,
+  subredditName?: string
 ): Promise<string> {
   try {
-    const subreddit = await context.reddit.getCurrentSubreddit();
-    const subredditName = subreddit?.name ?? '';
+    // subredditName can be passed directly from the menu event (subreddit location)
+    // or resolved from context as a fallback
+    let name = subredditName;
+    if (!name) {
+      const subreddit = await context.reddit.getCurrentSubreddit();
+      name = subreddit?.name;
+    }
+    if (!name) {
+      return 'TrustSignal Dashboard: Could not determine subreddit name.';
+    }
 
     const [stats, modLog] = await Promise.all([
-      getSubredditStats(context, subredditName),
-      getModActionLog(context, subredditName, 50),
+      getSubredditStats(context, name),
+      getModActionLog(context, name, 50),
     ]);
 
     const flagRate =
@@ -110,8 +119,12 @@ export async function getDashboardToast(
         ? Math.round((stats.totalFlagged / stats.totalScanned) * 100)
         : 0;
 
+    if (stats.totalScanned === 0) {
+      return `TrustSignal Dashboard | No posts scanned yet in r/${name}. Run "Scan post" on a post first.`;
+    }
+
     return (
-      `TrustSignal Dashboard | ` +
+      `TrustSignal Dashboard | r/${name} | ` +
       `Scanned: ${stats.totalScanned} | ` +
       `Flagged: ${stats.totalFlagged} (${flagRate}%) | ` +
       `Avg score: ${stats.averageScore} | ` +

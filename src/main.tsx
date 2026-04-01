@@ -64,8 +64,11 @@ Devvit.addMenuItem({
   location: 'subreddit',
   label: 'TrustSignal: Dashboard',
   forUserType: 'moderator',
-  onPress: async (_event, context) => {
-    context.ui.showToast(await getDashboardToast(context));
+  onPress: async (event, context) => {
+    // Pass subredditName directly from the event to avoid getCurrentSubreddit() failures
+    const subredditName =
+      'subredditName' in event ? (event.subredditName as string | undefined) : undefined;
+    context.ui.showToast(await getDashboardToast(context, subredditName));
   },
 });
 
