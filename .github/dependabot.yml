@@ -1,0 +1,41 @@
+version: 2
+
+updates:
+  # Devvit app (root)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - devvit
+    ignore:
+      # @devvit packages should be updated manually to control SDK compatibility
+      - dependency-name: "@devvit/*"
+
+  # Next.js web app
+  - package-ecosystem: npm
+    directory: /trustsignal-reddit-web
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - web
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions

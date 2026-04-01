@@ -1,0 +1,48 @@
+name: Deploy — Devvit App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'devvit.json'
+
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  upload:
+    name: Upload to Reddit
+    runs-on: ubuntu-latest
+    # Only run on the main repo, not forks
+    if: github.repository == 'TrustSignal-dev/TrustSignal-Reddit'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (gate before upload)
+        run: npm run typecheck
+
+      - name: Run tests (gate before upload)
+        run: npm test
+
+      - name: Upload to Devvit
+        env:
+          # Store your Devvit token in GitHub repo secrets as DEVVIT_TOKEN
+          # Get it from: ~/.devvit/token on your local machine after `devvit login`
+          DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
+        run: |
+          echo "$DEVVIT_TOKEN" > ~/.devvit/token
+          mkdir -p ~/.devvit
+          npx devvit upload --no-interactive

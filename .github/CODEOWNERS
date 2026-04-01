@@ -1,0 +1,11 @@
+# Global owner — all files require review from the org owner
+* @chrismaz11
+
+# Devvit app source
+/src/ @chrismaz11
+
+# Web app
+/trustsignal-reddit-web/ @chrismaz11
+
+# GitHub config — changes to CI/CD require explicit approval
+/.github/ @chrismaz11
