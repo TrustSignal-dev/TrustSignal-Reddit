@@ -64,12 +64,11 @@ export async function handleAutomaticScan(
 // ─── Status toast ─────────────────────────────────────────────────────────────
 
 export async function getStatusToast(
-  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings' | 'subredditName'>
 ): Promise<string> {
   try {
     const settings = await getTrustSignalSettings(context);
-    const subreddit = await context.reddit.getCurrentSubreddit();
-    const stats = await getSubredditStats(context, subreddit?.name ?? '');
+    const stats = await getSubredditStats(context, context.subredditName ?? '');
 
     const autoMode = settings.autoScanEnabled ? 'on' : 'off';
     const editMode = settings.rescanOnEdit ? 'on' : 'off';
@@ -94,25 +93,11 @@ export async function getStatusToast(
 // ─── Dashboard toast ──────────────────────────────────────────────────────────
 
 export async function getDashboardToast(
-  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>,
-  targetId?: string
+  context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings' | 'subredditName'>
 ): Promise<string> {
   try {
-    // targetId is the subreddit thing ID (t5_xxxxx) from the menu event.
-    // We resolve the name from it, or fall back to getCurrentSubreddit().
-    let name: string | undefined;
-    if (targetId) {
-      try {
-        const sub = await context.reddit.getSubredditById(targetId);
-        name = sub?.name;
-      } catch {
-        // fall through to getCurrentSubreddit
-      }
-    }
-    if (!name) {
-      const subreddit = await context.reddit.getCurrentSubreddit();
-      name = subreddit?.name;
-    }
+    // context.subredditName is always populated by Devvit in menu item handlers.
+    const name = context.subredditName;
     if (!name) {
       return 'TrustSignal Dashboard: Could not determine subreddit name.';
     }
