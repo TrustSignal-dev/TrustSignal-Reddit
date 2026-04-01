@@ -12,8 +12,6 @@ import { registerTrustSignalSettings } from './trustsignal/settings.js';
 Devvit.configure({
   redditAPI: true,
   redis: true,
-  // kvStore retained for backward-compat with any existing scan records
-  kvStore: true,
 });
 
 registerTrustSignalSettings();
