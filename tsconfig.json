@@ -9,8 +9,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "outDir": "./dist",
-    "baseUrl": "."
+    "rootDir": ".",
+    "ignoreDeprecations": "6.0",
+    "baseUrl": ".",
+    "types": ["node"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "dist", "bridge"]
+  "exclude": ["node_modules", "dist"]
 }

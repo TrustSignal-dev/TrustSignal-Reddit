@@ -7,7 +7,7 @@
     "dev": "npx devvit playtest",
     "build": "npx devvit bundle",
     "upload": "npx devvit upload",
-    "test": "npx tsc --outDir /tmp/trustsignal-rd-test && node --test /tmp/trustsignal-rd-test/__tests__/score.test.js",
+    "test": "npx tsc --outDir /tmp/trustsignal-rd-test && node --test /tmp/trustsignal-rd-test/src/__tests__/score.test.js",
     "typecheck": "npx tsc --noEmit"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@devvit/cli": "0.12.17",
+    "@types/node": "^25.5.0",
     "typescript": "^6.0.2"
   }
 }
