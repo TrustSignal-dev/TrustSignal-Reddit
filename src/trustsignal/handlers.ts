@@ -95,12 +95,20 @@ export async function getStatusToast(
 
 export async function getDashboardToast(
   context: Pick<Devvit.Context, 'redis' | 'reddit' | 'settings'>,
-  subredditName?: string
+  targetId?: string
 ): Promise<string> {
   try {
-    // subredditName can be passed directly from the menu event (subreddit location)
-    // or resolved from context as a fallback
-    let name = subredditName;
+    // targetId is the subreddit thing ID (t5_xxxxx) from the menu event.
+    // We resolve the name from it, or fall back to getCurrentSubreddit().
+    let name: string | undefined;
+    if (targetId) {
+      try {
+        const sub = await context.reddit.getSubredditById(targetId);
+        name = sub?.name;
+      } catch {
+        // fall through to getCurrentSubreddit
+      }
+    }
     if (!name) {
       const subreddit = await context.reddit.getCurrentSubreddit();
       name = subreddit?.name;
