@@ -1,0 +1,23 @@
+{
+  "name": "trustsignal-rd",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "devvit playtest",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "upload": "devvit upload",
+    "publish": "devvit publish"
+  },
+  "dependencies": {
+    "@devvit/public-api": "0.12.16"
+  },
+  "devDependencies": {
+    "typescript": "~5.5.0"
+  },
+  "devvit": {
+    "default": true
+  },
+  "license": "BSD-3-Clause"
+}
