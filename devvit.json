@@ -1,8 +1,95 @@
 {
   "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
   "name": "trustsignal-rd",
-  "blocks": {
-    "entry": "src/main.tsx",
-    "triggers": ["onPostSubmit", "onPostUpdate"]
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": {
+        "entry": "src/client/index.html",
+        "height": "tall"
+      }
+    }
+  },
+  "server": {
+    "entry": "dist/server/index.cjs"
+  },
+  "permissions": {
+    "redis": true,
+    "reddit": {
+      "enable": true,
+      "scope": "moderator"
+    }
+  },
+  "settings": {
+    "subreddit": {
+      "autoScanEnabled": {
+        "type": "boolean",
+        "label": "Automatically scan new posts",
+        "defaultValue": true
+      },
+      "rescanOnEdit": {
+        "type": "boolean",
+        "label": "Re-scan edited posts",
+        "defaultValue": true
+      },
+      "applyPostFlair": {
+        "type": "boolean",
+        "label": "Apply TrustSignal flair",
+        "defaultValue": true
+      },
+      "trustThreshold": {
+        "type": "number",
+        "label": "Flag threshold",
+        "defaultValue": 50,
+        "validationEndpoint": "/internal/settings/validate-threshold"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "TrustSignal: Scan post",
+        "description": "Run a TrustSignal scan for this post",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/scan-post"
+      },
+      {
+        "label": "TrustSignal: Log Approve",
+        "description": "Record an approve action against the latest TrustSignal scan",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/log-approve"
+      },
+      {
+        "label": "TrustSignal: Log Remove",
+        "description": "Record a remove action against the latest TrustSignal scan",
+        "forUserType": "moderator",
+        "location": "post",
+        "endpoint": "/internal/menu/log-remove"
+      },
+      {
+        "label": "TrustSignal: Status",
+        "description": "Show the current subreddit TrustSignal status",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/status"
+      },
+      {
+        "label": "TrustSignal: Dashboard",
+        "description": "Create a dashboard post for this subreddit",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/dashboard"
+      }
+    ]
+  },
+  "triggers": {
+    "onPostSubmit": "/internal/triggers/post-submit",
+    "onPostUpdate": "/internal/triggers/post-update"
+  },
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build"
   }
 }

@@ -1,21 +1,38 @@
 {
   "name": "trustsignal-rd",
-  "version": "0.0.3",
-  "description": "Native Reddit TrustSignal Scorer",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TrustSignal moderator dashboard rebuilt on Devvit Web.",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
   "scripts": {
     "dev": "npx devvit playtest",
-    "build": "npx devvit bundle",
-    "upload": "npx devvit upload",
-    "test": "npx tsc --outDir /tmp/trustsignal-rd-test && node --test /tmp/trustsignal-rd-test/src/__tests__/score.test.js",
-    "typecheck": "npx tsc --noEmit"
+    "build": "vite build",
+    "upload": "npx devvit upload --no-interactive",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@devvit/public-api": "0.12.17"
+    "@devvit/web": "0.12.18",
+    "express": "^5.1.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "overrides": {
+    "lodash": "4.18.0"
   },
   "devDependencies": {
-    "@devvit/cli": "0.12.17",
+    "@devvit/start": "0.12.18",
+    "@types/express": "^5.0.3",
     "@types/node": "^25.5.2",
-    "typescript": "^6.0.2"
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^6.0.2",
+    "vite": "^7.1.10",
+    "vitest": "^3.2.4"
   }
 }
