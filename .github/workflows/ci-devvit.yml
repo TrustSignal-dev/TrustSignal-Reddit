@@ -8,6 +8,8 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
+      - 'vite.config.ts'
+      - 'devvit.json'
   pull_request:
     branches: [main]
     paths:
@@ -15,12 +17,13 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'tsconfig.json'
+      - 'vite.config.ts'
+      - 'devvit.json'
 
 jobs:
-  typecheck-and-test:
-    name: Typecheck & Test
+  typecheck-test-build:
+    name: Typecheck, Test & Build
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -40,10 +43,12 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Build Devvit Web app
+        run: npm run build
+
   security-audit:
     name: Security Audit
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -57,5 +62,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Audit (allow low severity in CLI deps)
+      - name: Audit
         run: npm audit --audit-level=moderate

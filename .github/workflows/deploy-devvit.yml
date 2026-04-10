@@ -6,18 +6,17 @@ on:
     paths:
       - 'src/**'
       - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vite.config.ts'
       - 'devvit.json'
-
-  # Allow manual trigger from the Actions tab
   workflow_dispatch:
 
 jobs:
   upload:
     name: Upload to Reddit
     runs-on: ubuntu-latest
-    # Only run on the main repo, not forks
     if: github.repository == 'TrustSignal-dev/TrustSignal-Reddit'
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -31,18 +30,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck (gate before upload)
+      - name: Typecheck
         run: npm run typecheck
 
-      - name: Run tests (gate before upload)
+      - name: Run tests
         run: npm test
+
+      - name: Build
+        run: npm run build
 
       - name: Upload to Devvit
         env:
-          # Store your Devvit token in GitHub repo secrets as DEVVIT_TOKEN
-          # Get it from: ~/.devvit/token on your local machine after `devvit login`
           DEVVIT_TOKEN: ${{ secrets.DEVVIT_TOKEN }}
         run: |
-          echo "$DEVVIT_TOKEN" > ~/.devvit/token
           mkdir -p ~/.devvit
+          printf "%s" "$DEVVIT_TOKEN" > ~/.devvit/token
           npx devvit upload --no-interactive
