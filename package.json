@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "npx devvit playtest",
     "build": "vite build",
-    "upload": "npx devvit upload --no-interactive",
+    "upload": "npx devvit upload",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

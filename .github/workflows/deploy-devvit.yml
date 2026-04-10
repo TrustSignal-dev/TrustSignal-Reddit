@@ -45,4 +45,4 @@ jobs:
         run: |
           mkdir -p ~/.devvit
           printf "%s" "$DEVVIT_TOKEN" > ~/.devvit/token
-          npx devvit upload --no-interactive
+          npx devvit upload
