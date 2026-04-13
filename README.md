@@ -4,7 +4,15 @@
 [![CI — Devvit Web](https://img.shields.io/github/actions/workflow/status/TrustSignal-dev/TrustSignal-Reddit/ci-web.yml?label=CI%20Devvit%20Web)](https://github.com/TrustSignal-dev/TrustSignal-Reddit/actions/workflows/ci-web.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-TrustSignal for Reddit is now a single Devvit Web moderator app. The shipped product no longer uses Blocks-era `@devvit/public-api`, `devvit.yaml`, or the standalone Next dashboard.
+TrustSignal for Reddit is now a single Devvit Web moderator app. The current repo implementation no longer uses Blocks-era `@devvit/public-api`, `devvit.yaml`, or the standalone Next dashboard.
+
+> Status: `active` `adjacent-product`
+>
+> This repo is separate from the canonical TrustSignal verification API, public website, and GitHub Action stack.
+
+## Source of Truth
+
+Canonical repo roles and ownership are defined in [TrustSignal/docs/REPO_ROLES.md](https://github.com/TrustSignal-dev/TrustSignal/blob/master/docs/REPO_ROLES.md).
 
 ## What the app does
 
@@ -40,7 +48,7 @@ npm run dev
 
 ## Deployment
 
-GitHub Actions deploys on pushes to `main` through `.github/workflows/deploy-devvit.yml`.
+GitHub Actions is configured to deploy on pushes to `main` through `.github/workflows/deploy-devvit.yml`.
 
 Required secret:
 
