@@ -39,6 +39,25 @@ export interface PostSnapshot {
 
 export type ModActionType = 'approve' | 'remove' | 'manual_scan';
 
+export type RemovalReason = 'off_topic' | 'low_quality' | 'spam' | 'rule_violation' | 'appeals' | 'other';
+export type ApprovalReason = 'manual_review' | 'false_positive' | 'appeals' | 'other';
+
+export const REMOVAL_TEMPLATES: Record<RemovalReason, string> = {
+  off_topic: 'Off-topic for community',
+  low_quality: 'Low quality content',
+  spam: 'Spam or prohibited content',
+  rule_violation: 'Violates community rules',
+  appeals: 'Upheld removal appeal',
+  other: 'Other reason',
+};
+
+export const APPROVAL_TEMPLATES: Record<ApprovalReason, string> = {
+  manual_review: 'Manual review approved',
+  false_positive: 'False positive flagged scan',
+  appeals: 'Approved appeal',
+  other: 'Other reason',
+};
+
 export interface ModActionRecord {
   actionId: string;
   postId: string;
@@ -50,6 +69,7 @@ export interface ModActionRecord {
   trustScore: number;
   flagged: boolean;
   performedAt: string;
+  reason?: RemovalReason | ApprovalReason;
   note?: string;
 }
 

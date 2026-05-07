@@ -82,7 +82,12 @@ async function buildDashboardPayload(): Promise<DashboardPayload> {
   };
 }
 
-async function logModAction(postId: string, actionType: ModActionType): Promise<string> {
+async function logModAction(
+  postId: string,
+  actionType: ModActionType,
+  reason?: string,
+  note?: string,
+): Promise<string> {
   const [scanRecord, modName, subredditName] = await Promise.all([
     getStoredScan(postId),
     resolveCurrentUsername(),
@@ -104,11 +109,14 @@ async function logModAction(postId: string, actionType: ModActionType): Promise<
     trustScore: scanRecord.trustScore,
     flagged: scanRecord.flagged,
     performedAt: new Date().toISOString(),
+    reason: reason as any,
+    note,
   };
 
   await appendModAction(action);
   const icon = actionType === 'approve' ? '✓' : '⚑';
-  return `${icon} TrustSignal logged: ${actionType} on post (TS ${scanRecord.trustScore})`;
+  const reasonStr = reason ? ` · ${reason}` : '';
+  return `${icon} TrustSignal logged: ${actionType} on post (TS ${scanRecord.trustScore})${reasonStr}`;
 }
 
 const app = express();
@@ -137,13 +145,18 @@ router.post('/api/post/:postId/scan', async (req: Request<{ postId: string }>, r
 
 router.post(
   '/api/post/:postId/mod-action',
-  async (req: Request<{ postId: string }, unknown, { actionType?: ModActionType }>, res) => {
+  async (req: Request<{ postId: string }, unknown, { actionType?: ModActionType; reason?: string; note?: string }>, res) => {
     const actionType = req.body?.actionType;
     if (actionType !== 'approve' && actionType !== 'remove') {
       return res.status(400).json({ error: 'invalid_action_type' });
     }
 
-    const message = await logModAction(req.params.postId, actionType);
+    const message = await logModAction(
+      req.params.postId,
+      actionType,
+      req.body?.reason,
+      req.body?.note,
+    );
     return res.json({ message });
   },
 );

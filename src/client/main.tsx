@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { DashboardPayload, ModActionRecord, TrustSignalScanRecord } from '../shared/types.js';
+import { REMOVAL_TEMPLATES, APPROVAL_TEMPLATES } from '../shared/types.js';
 import './styles.css';
 
 function ScoreBadge({ scan }: { scan: TrustSignalScanRecord }) {
@@ -65,12 +66,157 @@ function TimelineItem({ action }: { action: ModActionRecord }) {
       <div className="muted" style={{ marginTop: 8 }}>
         u/{action.modName} · TS {action.trustScore} · {action.flagged ? 'was flagged' : 'was healthy'}
       </div>
+      {action.reason && (
+        <div style={{ marginTop: 6, fontSize: 13, color: '#666' }}>
+          <strong>Reason:</strong> {action.reason}
+        </div>
+      )}
+      {action.note && (
+        <div style={{ marginTop: 6, fontSize: 13, color: '#666' }}>
+          <strong>Note:</strong> {action.note}
+        </div>
+      )}
       {action.postPermalink && (
         <div className="muted" style={{ marginTop: 4, fontSize: 12 }}>
           <a href={action.postPermalink} target="_blank" rel="noreferrer">{action.postPermalink}</a>
         </div>
       )}
     </div>
+  );
+}
+
+function ActionLogger({ postId, onLogged }: { postId: string | null; onLogged: () => void }) {
+  const [selectedAction, setSelectedAction] = useState<'approve' | 'remove' | null>(null);
+  const [selectedReason, setSelectedReason] = useState<string>('');
+  const [note, setNote] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  if (!postId) return null;
+
+  const templates = selectedAction === 'approve' ? APPROVAL_TEMPLATES : REMOVAL_TEMPLATES;
+
+  async function handleLogAction() {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/post/${postId}/mod-action`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          actionType: selectedAction,
+          reason: selectedReason,
+          note: note || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`log_failed:${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('[TrustSignal] Action logged:', data.message);
+      setSelectedAction(null);
+      setSelectedReason('');
+      setNote('');
+      onLogged();
+    } catch (err) {
+      console.error('[TrustSignal] Log action failed:', err);
+      alert(`Failed to log action: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section className="section">
+      <h2 className="section-title">Log moderator action</h2>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <button
+          className={`button ${selectedAction === 'approve' ? 'button-primary' : 'button-secondary'}`}
+          onClick={() => {
+            setSelectedAction('approve');
+            setSelectedReason('');
+          }}
+          disabled={loading}
+        >
+          ✓ Approve
+        </button>
+        <button
+          className={`button ${selectedAction === 'remove' ? 'button-primary' : 'button-secondary'}`}
+          onClick={() => {
+            setSelectedAction('remove');
+            setSelectedReason('');
+          }}
+          disabled={loading}
+        >
+          ⚑ Remove
+        </button>
+      </div>
+
+      {selectedAction && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Select reason</label>
+            <select
+              value={selectedReason}
+              onChange={(e) => setSelectedReason(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                fontSize: '14px',
+              }}
+            >
+              <option value="">-- Choose a reason --</option>
+              {Object.entries(templates).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: 6, fontWeight: 500 }}>Optional note</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add additional context (optional)"
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                fontSize: '14px',
+                minHeight: '60px',
+                fontFamily: 'inherit',
+              }}
+            />
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              className="button button-primary"
+              onClick={handleLogAction}
+              disabled={loading || !selectedReason}
+            >
+              {loading ? 'Logging...' : 'Log action'}
+            </button>
+            <button
+              className="button button-secondary"
+              onClick={() => {
+                setSelectedAction(null);
+                setSelectedReason('');
+                setNote('');
+              }}
+              disabled={loading}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -191,6 +337,8 @@ function App() {
                   </div>}
             </div>
           </section>
+
+          <ActionLogger postId={payload.postId} onLogged={() => void loadDashboard()} />
 
           <section className="section">
             <h2 className="section-title">Installation settings</h2>
