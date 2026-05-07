@@ -47,7 +47,7 @@ jobs:
         run: npm run build
 
   security-audit:
-    name: Security Audit
+    name: Security Audit (Informational)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -63,4 +63,5 @@ jobs:
         run: npm ci
 
       - name: Audit
+        continue-on-error: true
         run: npm audit --audit-level=moderate

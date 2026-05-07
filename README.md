@@ -1,4 +1,4 @@
-# TrustSignal for Reddit (For Dummies)
+# TrustSignal for Reddit
 
 [![CI — Devvit](https://img.shields.io/github/actions/workflow/status/TrustSignal-dev/TrustSignal-Reddit/ci-devvit.yml?label=CI%20Devvit)](https://github.com/TrustSignal-dev/TrustSignal-Reddit/actions/workflows/ci-devvit.yml)
 [![CI — Devvit Web](https://img.shields.io/github/actions/workflow/status/TrustSignal-dev/TrustSignal-Reddit/ci-web.yml?label=CI%20Devvit%20Web)](https://github.com/TrustSignal-dev/TrustSignal-Reddit/actions/workflows/ci-web.yml)
@@ -83,13 +83,15 @@ Required secret:
 
 - `DEVVIT_TOKEN`
 
+`DEVVIT_TOKEN` is maintainer-only for CLI/CI upload workflows. Moderators using TrustSignal inside Reddit do not need this token.
+
 Workflow overview:
 
 1. install dependencies
 2. typecheck and test
 3. build client/server outputs
 4. write token to `~/.devvit/token`
-5. upload with `npx devvit upload --no-interactive`
+5. upload with `npx devvit upload`
 
 ## Subreddit settings you can change
 
