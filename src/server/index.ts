@@ -240,6 +240,39 @@ router.post('/internal/menu/status', async (_req, res) => {
   }
 });
 
+router.post('/internal/menu/bulk-scan', async (req: Request<never, UiResponse, MenuRequest>, res) => {
+  try {
+    const subredditName = await resolveSubredditName(req.body?.subredditName);
+    if (!subredditName) {
+      return res.status(400).json(toast('Could not determine subreddit name.', 'error'));
+    }
+
+    const listing = reddit.getNewPosts({ subredditName, limit: 25 });
+    const postList = await listing.get(25);
+
+    let scanned = 0;
+    let flagged = 0;
+
+    for (const post of postList) {
+      const postId = (post as { id?: string }).id ?? '';
+      if (!postId) continue;
+      const result = await runTrustSignalScan(postId, 'menu', { force: false });
+      if (result && !result.skipped) {
+        scanned += 1;
+        if (result.record.flagged) flagged += 1;
+      }
+    }
+
+    return res.json(toast(
+      `TrustSignal bulk scan complete. Scanned ${scanned} new posts — ${flagged} flagged.`,
+      flagged > 0 ? 'error' : 'success',
+    ));
+  } catch (error) {
+    console.error('[TrustSignal] Bulk scan failed:', getErrorMessage(error));
+    return res.status(500).json(toast('TrustSignal bulk scan failed.', 'error'));
+  }
+});
+
 router.post('/internal/menu/dashboard', async (req: Request<never, UiResponse, MenuRequest>, res) => {
   try {
     const subredditName = await resolveSubredditName(req.body?.subredditName);

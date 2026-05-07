@@ -19,6 +19,7 @@ export interface TrustSignalScore {
 
 export interface TrustSignalScanRecord extends TrustSignalScore {
   postId: string;
+  postTitle: string;
   postPermalink: string;
   subredditName: string;
   authorName: string;
@@ -57,6 +58,8 @@ export interface SubredditStats {
   totalFlagged: number;
   averageScore: number;
   lastScanAt: string | null;
+  totalApproved: number;
+  totalRemoved: number;
 }
 
 export interface DashboardPayload {

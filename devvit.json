@@ -81,6 +81,13 @@
         "forUserType": "moderator",
         "location": "subreddit",
         "endpoint": "/internal/menu/dashboard"
+      },
+      {
+        "label": "TrustSignal: Scan recent posts",
+        "description": "Run TrustSignal across the 25 most recent posts in this subreddit",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/bulk-scan"
       }
     ]
   },

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 
 import type { TrustSignalScore } from '../../shared/types.js';
 
-const MODEL_VERSION = 'local-heuristics-v2';
+const MODEL_VERSION = 'local-heuristics-v3';
 const NEUTRAL_SCORE = 60;
 
 const AI_STYLE_PHRASES = [
@@ -30,7 +30,14 @@ const AI_STYLE_PHRASES = [
   'holistic approach',
   'robust solution',
   'best practices',
-  'thought leader'
+  'thought leader',
+  'key takeaway',
+  'in summary',
+  'to summarize',
+  'actionable',
+  'elevate your',
+  'game-changing',
+  'next level',
 ];
 
 const PROMO_PHRASES = [
@@ -49,7 +56,23 @@ const PROMO_PHRASES = [
   'dm me for',
   'check my profile',
   'link in bio',
-  'promo code'
+  'promo code',
+  'referral',
+  'cashback',
+  'earn money',
+  'make money online',
+  'passive income',
+  'financial freedom',
+];
+
+const BOT_NAME_PATTERNS = [
+  /bot$/i,
+  /^bot/i,
+  /throwaway/i,
+  /temp\d+/i,
+  /\d{6,}$/,
+  /^[a-z]{4,8}\d{4,}$/i,
+  /^[A-Z][a-z]+[A-Z][a-z]+\d{3,}$/,
 ];
 
 const FIRST_PERSON_PATTERN = /\b(i|i'm|i've|i'd|my|me|we|we're|our|us)\b/i;
@@ -106,10 +129,25 @@ function buildFingerprint(title: string, body: string): string {
     .digest('hex');
 }
 
+function checkAuthorNameRisk(authorName: string): { penalty: number; reason: string | null } {
+  if (!authorName || authorName === 'unknown') {
+    return { penalty: 5, reason: 'Author name is unavailable, which can indicate a removed or bot account.' };
+  }
+
+  for (const pattern of BOT_NAME_PATTERNS) {
+    if (pattern.test(authorName)) {
+      return { penalty: 10, reason: `Username pattern "${authorName}" matches common bot or throwaway account formats.` };
+    }
+  }
+
+  return { penalty: 0, reason: null };
+}
+
 export function scoreTrustSignalContent(input: {
   title: string;
   body: string;
   trustThreshold: number;
+  authorName?: string;
 }): TrustSignalScore {
   const title = input.title.trim();
   const body = input.body.trim();
@@ -159,9 +197,16 @@ export function scoreTrustSignalContent(input: {
     reasons.push('Contains questions, which usually indicates direct human interaction.');
   }
 
+  const bodyWordCount = body.split(/\s+/).filter(Boolean).length;
+  const titleWordCount = title.split(/\s+/).filter(Boolean).length;
+  if (titleWordCount >= 8 && bodyWordCount < 20) {
+    score -= 7;
+    reasons.push('Long title with very short body — typical of auto-generated link posts.');
+  }
+
   const aiPhraseHits = AI_STYLE_PHRASES.filter((phrase) => normalized.includes(phrase));
   if (aiPhraseHits.length > 0) {
-    score -= Math.min(24, aiPhraseHits.length * 8);
+    score -= Math.min(28, aiPhraseHits.length * 7);
     reasons.push(
       `Uses stock AI-style phrasing such as "${aiPhraseHits.slice(0, 2).join('" and "')}".`,
     );
@@ -232,6 +277,14 @@ export function scoreTrustSignalContent(input: {
     reasons.push('Title is written entirely in capitals, a common spam pattern.');
   }
 
+  if (input.authorName !== undefined) {
+    const authorRisk = checkAuthorNameRisk(input.authorName);
+    if (authorRisk.penalty > 0 && authorRisk.reason) {
+      score -= authorRisk.penalty;
+      reasons.push(authorRisk.reason);
+    }
+  }
+
   const trustScore = clampScore(score);
   const flagged = trustScore < input.trustThreshold;
 
@@ -249,3 +302,4 @@ export function scoreTrustSignalContent(input: {
     contentLength: combined.length,
   };
 }
+

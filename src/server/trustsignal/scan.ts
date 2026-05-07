@@ -77,6 +77,7 @@ export async function runTrustSignalScan(
     title: post.title,
     body: post.body,
     trustThreshold: appSettings.trustThreshold,
+    authorName: post.authorName,
   });
 
   const previousScan = await getStoredScan(post.id);
@@ -90,6 +91,7 @@ export async function runTrustSignalScan(
     : {
         ...score,
         postId: post.id,
+        postTitle: post.title,
         postPermalink: post.permalink,
         subredditName: post.subredditName,
         authorName: post.authorName,

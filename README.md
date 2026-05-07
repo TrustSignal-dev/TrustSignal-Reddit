@@ -1,74 +1,111 @@
-# TrustSignal for Reddit
+# TrustSignal for Reddit (For Dummies)
 
 [![CI — Devvit](https://img.shields.io/github/actions/workflow/status/TrustSignal-dev/TrustSignal-Reddit/ci-devvit.yml?label=CI%20Devvit)](https://github.com/TrustSignal-dev/TrustSignal-Reddit/actions/workflows/ci-devvit.yml)
 [![CI — Devvit Web](https://img.shields.io/github/actions/workflow/status/TrustSignal-dev/TrustSignal-Reddit/ci-web.yml?label=CI%20Devvit%20Web)](https://github.com/TrustSignal-dev/TrustSignal-Reddit/actions/workflows/ci-web.yml)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-TrustSignal for Reddit is now a single Devvit Web moderator app. The current repo implementation no longer uses Blocks-era `@devvit/public-api`, `devvit.yaml`, or the standalone Next dashboard.
+This is a moderator tool for Reddit built with Devvit Web.
 
-> Status: `active` `adjacent-product`
->
-> This repo is separate from the canonical TrustSignal verification API, public website, and GitHub Action stack.
+If you are new to this repo, think of TrustSignal as a helper that:
 
-## Source of Truth
+- scans posts
+- gives each post a TrustSignal score
+- can apply flair based on your threshold
+- keeps an audit trail of moderator actions
+- shows a dashboard inside Reddit
 
-Canonical repo roles and ownership are defined in [TrustSignal/docs/REPO_ROLES.md](https://github.com/TrustSignal-dev/TrustSignal/blob/master/docs/REPO_ROLES.md).
+## 30-second summary
 
-## What the app does
+- App type: single Devvit Web app (not old Blocks architecture)
+- Runtime stack: TypeScript client + server
+- Main config file: `devvit.json`
+- Latest supported Devvit version for this project: **12.22**
 
-- Scores Reddit posts with a local TrustSignal heuristic engine
-- Runs automatic scans on post submit and post update
-- Applies post flair based on the configured subreddit threshold
-- Logs moderator approve and remove actions against the latest TrustSignal scan
-- Shows a native in-Reddit dashboard with subreddit stats, recent scans, and audit history
+## What this app does (plain English)
 
-## Architecture
+1. A post is created or edited.
+2. TrustSignal runs a local heuristic scan.
+3. The post gets a score.
+4. If your subreddit setting allows it, flair is applied automatically.
+5. Approve/remove actions are logged against the latest scan for auditing.
 
-- `src/client/` renders the moderator dashboard inside Reddit
-- `src/server/` handles menu actions, trigger endpoints, settings validation, Reddit API access, and Redis storage
-- `src/shared/` contains the shared dashboard and scan record types
-- `devvit.json` is the only source of truth for permissions, menu actions, triggers, and settings
+## Project layout
 
-## Development
+- `src/client/`: dashboard UI that moderators see in Reddit
+- `src/server/`: triggers, menu actions, settings validation, Reddit API work, storage
+- `src/shared/`: shared TypeScript types
+- `devvit.json`: source of truth for permissions, triggers, settings, and menu actions
 
-Prerequisites:
+## Prerequisites
 
-- Node.js `22.12.0+`
-- Devvit CLI available via `npx devvit`
+- Node.js `22.12.0` or newer
+- npm
+- Devvit CLI version `12.22`
 
-Commands:
+Check your Devvit CLI version:
+
+```bash
+npx devvit --version
+```
+
+## Local setup (step-by-step)
+
+1. Install dependencies:
 
 ```bash
 npm install
+```
+
+2. Run quality checks:
+
+```bash
 npm run typecheck
 npm test
+```
+
+3. Build the app:
+
+```bash
 npm run build
+```
+
+4. Start local development:
+
+```bash
 npm run dev
 ```
 
-## Deployment
+## Deployment basics
 
-GitHub Actions is configured to deploy on pushes to `main` through `.github/workflows/deploy-devvit.yml`.
+Deploys are handled by GitHub Actions on pushes to `main` using `.github/workflows/deploy-devvit.yml`.
 
 Required secret:
 
 - `DEVVIT_TOKEN`
 
-The workflow now:
+Workflow overview:
 
-1. installs dependencies
-2. typechecks and tests
-3. builds the Devvit Web client/server outputs
-4. writes the Devvit token correctly to `~/.devvit/token`
-5. uploads the app with `npx devvit upload --no-interactive`
+1. install dependencies
+2. typecheck and test
+3. build client/server outputs
+4. write token to `~/.devvit/token`
+5. upload with `npx devvit upload --no-interactive`
 
-## Moderator settings
+## Subreddit settings you can change
 
-Subreddit-scoped settings are defined in `devvit.json`:
+Defined in `devvit.json`:
 
 - `autoScanEnabled`
 - `rescanOnEdit`
 - `applyPostFlair`
-- `trustThreshold`
+- `trustThreshold` (default: `50`)
 
-Default threshold is `50`.
+## Important notes
+
+- This repo is the Reddit moderator product only.
+- It is separate from the main TrustSignal verification API and website repos.
+- Do not reintroduce deprecated Blocks-era setup (`@devvit/public-api`, `devvit.yaml`, or a separate Next dashboard).
+
+## Source of truth for ownership
+
+Canonical roles and ownership: [TrustSignal/docs/REPO_ROLES.md](https://github.com/TrustSignal-dev/TrustSignal/blob/master/docs/REPO_ROLES.md)

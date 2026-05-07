@@ -71,6 +71,12 @@ export async function appendModAction(action: ModActionRecord): Promise<void> {
   if (total > MOD_LOG_MAX) {
     await redis.zRemRangeByRank(key, 0, total - MOD_LOG_MAX - 1);
   }
+
+  if (action.actionType === 'approve' || action.actionType === 'remove') {
+    const statsKey2 = statsKey(action.subredditName);
+    const field = action.actionType === 'approve' ? 'totalApproved' : 'totalRemoved';
+    await redis.hIncrBy(statsKey2, field, 1);
+  }
 }
 
 export async function getModActionLog(
@@ -98,7 +104,7 @@ export async function getSubredditStats(subredditName: string): Promise<Subreddi
   const raw = await redis.hGetAll(statsKey(subredditName));
 
   if (!raw || Object.keys(raw).length === 0) {
-    return { totalScanned: 0, totalFlagged: 0, averageScore: 0, lastScanAt: null };
+    return { totalScanned: 0, totalFlagged: 0, averageScore: 0, lastScanAt: null, totalApproved: 0, totalRemoved: 0 };
   }
 
   const totalScanned = Number.parseInt(raw.totalScanned ?? '0', 10);
@@ -110,6 +116,8 @@ export async function getSubredditStats(subredditName: string): Promise<Subreddi
     totalFlagged,
     averageScore: totalScanned > 0 ? Math.round(scoreSum / totalScanned) : 0,
     lastScanAt: raw.lastScanAt ?? null,
+    totalApproved: Number.parseInt(raw.totalApproved ?? '0', 10),
+    totalRemoved: Number.parseInt(raw.totalRemoved ?? '0', 10),
   };
 }
 
